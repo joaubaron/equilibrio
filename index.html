@@ -259,7 +259,6 @@
     img.alt = s.labels[0] || `Encarte ${i + 1}`;
     img.draggable = false;
 
-    // Fallback visual se imagem não carregar
     img.onerror = () => {
       if (img.dataset.fallback) return;
       img.dataset.fallback = "1";
@@ -271,28 +270,43 @@
 
     div.appendChild(img);
 
-    // Botão de play apenas para slides COM música
+    // Um botão por faixa
     if (s.tracks.length) {
-      const ctrl = document.createElement("div");
-      ctrl.className = "audio-control";
+      s.tracks.forEach((track, tIdx) => {
+        const ctrl = document.createElement("div");
+        ctrl.className = "audio-control";
+        ctrl.style.bottom = s.tracks.length > 1
+          ? (20 + tIdx * 62) + "px"
+          : "20px";
 
-      const btn = document.createElement("button");
-      btn.className = "play-pause-btn";
-      btn.textContent = "▶";
-      btn.setAttribute("aria-label", "Tocar / Pausar");
+        const btn = document.createElement("button");
+        btn.className = "play-pause-btn";
+        btn.textContent = "▶";
+        btn.setAttribute("aria-label", "Tocar / Pausar");
 
-      const lbl = document.createElement("span");
-      lbl.className = "track-name";
-      lbl.textContent = s.labels[0] || "";
+        const lbl = document.createElement("span");
+        lbl.className = "track-name";
+        lbl.textContent = s.labels[tIdx] || track;
 
-      btn.addEventListener("click", e => {
-        e.stopPropagation();
-        togglePlay(i, btn, lbl);
+        btn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (playing.slideIndex === i && playing.trackIndex === tIdx && playing.audio) {
+            if (playing.audio.paused) {
+              playing.audio.play();
+              btn.textContent = "⏸";
+            } else {
+              playing.audio.pause();
+              btn.textContent = "▶";
+            }
+          } else {
+            playTrack(i, tIdx, btn, lbl);
+          }
+        });
+
+        ctrl.appendChild(btn);
+        ctrl.appendChild(lbl);
+        div.appendChild(ctrl);
       });
-
-      ctrl.appendChild(btn);
-      ctrl.appendChild(lbl);
-      div.appendChild(ctrl);
     }
 
     carousel.appendChild(div);
