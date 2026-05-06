@@ -2,631 +2,525 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Encarte Musical - PWA</title>
-  <meta name="theme-color" content="#1a1a2e">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Encarte Musical · Gente</title>
+  <!-- PWA Meta -->
+  <meta name="theme-color" content="#111111">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
-  <!-- Manifest (será injetado via JS, mas teremos link real) -->
   <link rel="manifest" href="manifest.json">
-  
+  <!-- Favicon & Icons (fallback) -->
+  <link rel="icon" type="image/png" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23111111'/%3E%3Ctext x='50' y='68' font-size='48' text-anchor='middle' fill='%23e0b05c'%3E♪%3C/text%3E%3C/svg%3E">
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      user-select: none;
+      user-select: none; /* evitar seleção ao arrastar */
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
-      background: linear-gradient(145deg, #0b0b1a 0%, #12121f 100%);
-      font-family: 'Segoe UI', system-ui, 'Helvetica Neue', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
+      background: #0a0a0a;
       overflow: hidden;
-      touch-action: pan-x pan-y;
-    }
-
-    .encarte-container {
-      position: relative;
+      font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
+      touch-action: pan-x pan-y; /* permitir pan, mas cuidamos do horizontal */
+      position: fixed;
       width: 100%;
-      max-width: 1000px;
-      height: 80vh;
-      min-height: 550px;
-      margin: 20px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 32px;
-      box-shadow: 0 25px 45px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1);
-      backdrop-filter: blur(2px);
-      overflow: hidden;
+      height: 100%;
     }
 
+    /* container principal horizontal: swipe nativo com snap */
     .carousel {
       display: flex;
       overflow-x: auto;
+      overflow-y: hidden;
       scroll-snap-type: x mandatory;
       scroll-behavior: smooth;
-      height: 100%;
-      width: 100%;
-      border-radius: 28px;
-      scrollbar-width: thin;
-      scrollbar-color: #ffc107 #2c2c3a;
-      cursor: grab;
+      height: 100vh;
+      width: 100vw;
+      background: #000;
+      scrollbar-width: none; /* Firefox: esconde scrollbar */
+      -ms-overflow-style: none;
+      touch-action: pan-y pinch-zoom; /* scroll horizontal suave */
     }
-    .carousel:active { cursor: grabbing; }
-    .carousel::-webkit-scrollbar { height: 6px; }
-    .carousel::-webkit-scrollbar-track { background: #2c2c3a; border-radius: 10px; }
-    .carousel::-webkit-scrollbar-thumb { background: #ffc107; border-radius: 10px; }
 
-    .encarte-slide {
+    .carousel::-webkit-scrollbar {
+      display: none;  /* Chrome/Safari esconde barra */
+    }
+
+    /* cada encarte = slide horizontal fixo */
+    .slide {
       flex: 0 0 100%;
+      width: 100%;
       scroll-snap-align: start;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 2rem;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
       position: relative;
-      border-radius: 28px;
-      background-color: rgba(10, 10, 20, 0.7);
-      background-blend-mode: overlay;
-    }
-
-    .encarte-content {
-      max-width: 85%;
-      background: rgba(0,0,0,0.65);
-      backdrop-filter: blur(12px);
-      padding: 1.8rem 2rem;
-      border-radius: 2rem;
-      color: #f0f0f0;
-      font-weight: 500;
-      text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,200,0.2);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-      font-size: 1.2rem;
-      line-height: 1.5;
-      text-align: center;
-      font-family: 'Georgia', serif;
-    }
-
-    .song-title {
-      font-size: 1.6rem;
-      font-weight: bold;
-      color: #ffc107;
-      margin-bottom: 0.5rem;
-    }
-
-    .artists {
-      font-size: 0.9rem;
-      color: #dddddd;
-      border-top: 1px dashed #ffc107;
-      padding-top: 1rem;
-      margin-top: 1rem;
-    }
-
-    .controls {
-      position: absolute;
-      bottom: 20px;
-      left: 0;
-      right: 0;
+      background: #1e1e1e;
       display: flex;
-      justify-content: center;
-      gap: 16px;
-      z-index: 20;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
-      padding: 10px 20px;
-      border-radius: 50px;
-      width: fit-content;
-      margin: 0 auto;
-    }
-
-    .nav-btn {
-      background: rgba(30,30,50,0.9);
-      border: none;
-      font-size: 1.8rem;
-      width: 56px;
-      height: 56px;
-      border-radius: 40px;
-      display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #ffc107;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    .nav-btn:active {
-      transform: scale(0.94);
-      background: #ffc107;
-      color: #1a1a2e;
-    }
-
-    .player-bar {
-      position: absolute;
-      bottom: 100px;
-      left: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(12px);
-      border-radius: 48px;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      z-index: 20;
-      border: 1px solid #ffc10740;
-    }
-
-    .track-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: white;
-      font-size: 0.9rem;
-      font-weight: 500;
-      flex: 2;
-    }
-
-    .track-name {
-      color: #ffc107;
-      white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 160px;
     }
 
-    .player-buttons {
+    /* imagem do encarte - manter proporção e ocupar toda altura/largura */
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;  /* mantém arte legível, sem cortar, fundo preto */
+      background: #000;
+      pointer-events: none;  /* evitar conflitos com toque */
+    }
+
+    /* botão oculto de áudio + overlay sutil (tocar/pausar) */
+    .audio-control {
+      position: absolute;
+      bottom: 24px;
+      right: 20px;
+      z-index: 30;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(8px);
+      border-radius: 60px;
+      padding: 12px 18px;
       display: flex;
-      gap: 8px;
+      align-items: center;
+      gap: 12px;
+      border: 0.5px solid rgba(255,215,120,0.5);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      transition: 0.2s;
     }
 
-    .player-buttons button {
-      background: none;
+    .play-pause-btn {
+      background: #ffcd7e;
       border: none;
-      font-size: 1.8rem;
-      color: #ffc107;
-      cursor: pointer;
       width: 44px;
       height: 44px;
-      border-radius: 40px;
-    }
-
-    .player-buttons button:active {
-      background: #ffffff30;
-    }
-
-    .progress-container {
-      flex: 3;
+      border-radius: 44px;
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-
-    .progress-bar {
-      flex: 1;
-      height: 5px;
-      background: #3a3a5a;
-      border-radius: 5px;
-      overflow: hidden;
+      justify-content: center;
+      font-size: 24px;
       cursor: pointer;
-    }
-
-    .progress-fill {
-      width: 0%;
-      height: 100%;
-      background: #ffc107;
-    }
-
-    .time {
-      color: #ccc;
-      font-size: 0.7rem;
-      font-family: monospace;
-    }
-
-    .page-indicator {
-      position: absolute;
-      top: 16px;
-      right: 24px;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(4px);
-      padding: 4px 12px;
-      border-radius: 40px;
-      color: #ffc107;
-      font-weight: bold;
-      font-size: 0.8rem;
-      z-index: 20;
-    }
-
-    .install-btn {
-      position: absolute;
-      top: 16px;
-      left: 24px;
-      background: #ffc107;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 40px;
-      color: #1a1a2e;
-      font-weight: bold;
-      font-size: 0.7rem;
-      cursor: pointer;
-      z-index: 20;
+      color: #1f1f1f;
+      transition: 0.1s linear;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    @media (max-width: 680px) {
-      .encarte-content { padding: 1rem 1.2rem; font-size: 0.9rem; }
-      .song-title { font-size: 1.2rem; }
-      .player-bar { flex-wrap: wrap; bottom: 90px; }
-      .track-info { order: 1; width: 100%; }
-      .progress-container { order: 2; width: 100%; }
-      .controls { bottom: 12px; }
+    .play-pause-btn:active {
+      transform: scale(0.96);
+    }
+
+    .track-name {
+      color: #f0e6d0;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      max-width: 140px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* indicador de página */
+    .page-indicator {
+      position: absolute;
+      bottom: 28px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      pointer-events: none;
+      z-index: 25;
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,245,210,0.85);
+      background: rgba(0,0,0,0.45);
+      display: inline-block;
+      width: fit-content;
+      margin: 0 auto;
+      padding: 5px 14px;
+      border-radius: 40px;
+      backdrop-filter: blur(4px);
+      font-family: monospace;
+      letter-spacing: 1px;
+    }
+
+    /* pequena dica de swipe */
+    .swipe-hint {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 30px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: #ffe0a3;
+      pointer-events: none;
+      backdrop-filter: blur(5px);
+      z-index: 25;
+      font-weight: 500;
+    }
+
+    /* responsivo: manter sempre horizontal e usável */
+    @media (orientation: portrait) {
+      .carousel {
+        scroll-snap-type: x mandatory;
+      }
+      .slide img {
+        object-fit: contain;
+      }
     }
   </style>
 </head>
 <body>
-<div class="encarte-container">
-  <div class="carousel" id="carousel"></div>
-  <div class="page-indicator" id="pageIndicator">Encarte 1 / 3</div>
-  <button class="install-btn" id="installBtn" style="display:none;">📲 Instalar App</button>
 
-  <div class="player-bar">
-    <div class="track-info">
-      <span>🎵</span>
-      <span class="track-name" id="currentTrackName">Nenhuma música</span>
-    </div>
-    <div class="progress-container">
-      <span class="time" id="currentTime">0:00</span>
-      <div class="progress-bar" id="progressBar">
-        <div class="progress-fill" id="progressFill"></div>
-      </div>
-      <span class="time" id="durationTime">0:00</span>
-    </div>
-    <div class="player-buttons">
-      <button id="prevTrackBtn">⏮️</button>
-      <button id="playPauseBtn">▶️</button>
-      <button id="nextTrackBtn">⏭️</button>
-    </div>
-  </div>
-
-  <div class="controls">
-    <button class="nav-btn" id="prevEncarteBtn">◀</button>
-    <button class="nav-btn" id="nextEncarteBtn">▶</button>
-  </div>
-</div>
+<div class="carousel" id="carouselContainer"></div>
 
 <script>
-  // Dados dos encartes (baseado no poema fornecido)
-  const ENCARTES = [
-    {
-      id: 1,
-      titulo: "🎶 GENTE COMUM",
-      subtitulo: "A. Valisiglio / Cheope / M. Marati",
-      texto: "Si sbaglia sai quasi continuamente / sperando di non farsi mai troppo male / ma quante volte si cade. / La vita sai è un filo in equilibrio / e prima o poi ci ritroviamo distanti davanti a un bivio. / Ed ogni giorno insieme per fare solo un metro in più / Ci vuole tutto il bene che riusciremo a trovare in ognuno di noi.",
-      rodape: "Renato Russo - voz, guitarras acústicas, baixo, teclados / Carlos Trilha - teclados, programação / Eduardo Constant - bateria",
-      imagemFundo: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&auto=format",
-      musicaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      musicaNome: "Gente Comum"
-    },
-    {
-      id: 2,
-      titulo: "🌅 RINASCERE",
-      subtitulo: "A. Valisiglio / Cheope / M. Marati",
-      texto: "Ma a volte poi basta un sorriso solo / a sciogliere in noi anche un inverno di gelo / e ripartire da zero / Perché non c'è un limite per nessuno / che dentro sè abbia un amore sincero solo un respiro / Non siamo angeli in volo venuti dal cielo / Ma gente comune che ama davvero.",
-      rodape: "Gente che vuole un mondo più vero / la gente che incontri per strada in città",
-      imagemFundo: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format",
-      musicaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-      musicaNome: "Rinascere"
-    },
-    {
-      id: 3,
-      titulo: "🌍 MONDO PIÙ VERO",
-      subtitulo: "Renato Russo & Convidados",
-      texto: "Prova e vedrai ci sarà sempre un modo / dentro di noi per poi riprendere il volo / verso il sereno / Non siamo angeli in volo venuti dal cielo / ma gente comune che ama davvero / gente che vuole un mondo più vero / la gente che insieme lo cambierà.",
-      rodape: "Gente que quer um mundo mais verdadeiro, a gente que junto o mudará.",
-      imagemFundo: "https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=800&auto=format",
-      musicaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-      musicaNome: "Mondo Più Vero"
-    }
+  // ======================= CONFIGURAÇÃO =======================
+  // TOTAL DE 15 ENCARTES (encarte1.webp a encarte15.webp)
+  // ÁUDIOS: cada encarte tem sua trilha .mp3 numerada 1..15
+  // As pastas: ENCARTES na raiz do PWA (./encartes/encarteX.webp)
+  // MP3: ./audio/faixaX.mp3   (ou ./musicas/faixaX.mp3, adaptado)
+  // * Ajuste conforme seus arquivos. Vamos usar pasta /audio/ e /encartes/
+  // Em produção, copie seus arquivos. Para demonstração local, usamos fallback exemplos.
+  //
+  // Para evitar erros e garantir funcionamento offline, cada slide carrega
+  // imagem e áudio com Source. Se alguma imagem não existir, aparece texto.
+  // Porém os arquivos devem estar disponíveis na estrutura correta.
+  // -------------------------------------------------------------
+
+  const TOTAL_SLIDES = 15;
+
+  // Vamos pré definir metadados dos áudios (nome opcional para exibição)
+  // Você pode personalizar titulos ou extrair do filename. Usaremos "Faixa 01"...
+  const trackTitles = [
+    "Unisono della vita", "Equilibrio sottile", "Il filo e il bivio",
+    "Un metro in più", "Dentro ogni bene", "Sorriso e inverno",
+    "Ricominciare da zero", "Amore sincero", "Respiro infinito",
+    "Gente comune", "Mondo più vero", "Incontri per strada",
+    "Riprendere il volo", "Verso il sereno", "Insieme cambierà"
   ];
 
-  let currentTrackIndex = 0;
-  let audio = new Audio();
-  let isPlaying = false;
-  let deferredPrompt = null;
+  // Caminhos (raiz relativa)
+  const IMG_BASE = "./encartes/";
+  const AUDIO_BASE = "./audio/";
 
-  // Elementos DOM
-  const carousel = document.getElementById('carousel');
-  const pageIndicator = document.getElementById('pageIndicator');
-  const prevEncarteBtn = document.getElementById('prevEncarteBtn');
-  const nextEncarteBtn = document.getElementById('nextEncarteBtn');
-  const playPauseBtn = document.getElementById('playPauseBtn');
-  const prevTrackBtn = document.getElementById('prevTrackBtn');
-  const nextTrackBtn = document.getElementById('nextTrackBtn');
-  const currentTrackNameSpan = document.getElementById('currentTrackName');
-  const progressFill = document.getElementById('progressFill');
-  const progressBar = document.getElementById('progressBar');
-  const currentTimeSpan = document.getElementById('currentTime');
-  const durationTimeSpan = document.getElementById('durationTime');
-  const installBtn = document.getElementById('installBtn');
+  // Para fallback em caso de erro 404: texto gentil ou cor sólida.
+  // Mas idealmente coloque webp e mp3 reais.
 
-  // Construir slides
-  function buildEncartes() {
-    carousel.innerHTML = '';
-    ENCARTES.forEach((enc, idx) => {
-      const slide = document.createElement('div');
-      slide.className = 'encarte-slide';
-      slide.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,0.7), rgba(20,20,40,0.8)), url('${enc.imagemFundo}')`;
-      slide.style.backgroundSize = 'cover';
-      slide.style.backgroundPosition = 'center';
-      
-      const contentDiv = document.createElement('div');
-      contentDiv.className = 'encarte-content';
-      contentDiv.innerHTML = `
-        <div class="song-title">${enc.titulo}</div>
-        <div class="artists" style="font-size:0.85rem; margin-bottom:8px;">${enc.subtitulo}</div>
-        <p>${enc.texto.replace(/\//g, '<br/>')}</p>
-        <div class="artists">${enc.rodape}</div>
-      `;
-      slide.appendChild(contentDiv);
-      carousel.appendChild(slide);
-    });
+  // Elemento principal
+  const carousel = document.getElementById("carouselContainer");
+
+  // Armazenar elementos de áudio e referências do slide ativo
+  let audioElements = [];         // array de objetos { audio, slideIndex, isPlaying, btn, trackSpan }
+  let currentPlayingIndex = -1;   // índice do slide que está atualmente tocando
+  let observer = null;            // intersection observer para gerenciar pausa automática quando sair da tela
+
+  // Criar slides dinamicamente
+  function buildSlides() {
+    carousel.innerHTML = "";
+    audioElements = [];
+    for (let i = 0; i < TOTAL_SLIDES; i++) {
+      const slideIndex = i; // 0-based
+      const num = i + 1;
+      const imgSrc = `${IMG_BASE}encarte${num}.webp`;
+      const audioSrc = `${AUDIO_BASE}faixa${num}.mp3`;
+      const trackName = trackTitles[i] || `Faixa ${num}`;
+
+      // slide container
+      const slideDiv = document.createElement("div");
+      slideDiv.className = "slide";
+      slideDiv.setAttribute("data-slide-index", slideIndex);
+
+      // Imagem
+      const img = document.createElement("img");
+      img.src = imgSrc;
+      img.alt = `Encarte ${num} · ${trackName}`;
+      img.onerror = () => {
+        // Caso imagem não encontrada: fundo escuro com texto arte ausente (não quebra navegação)
+        if (!img.dataset.fallbackSet) {
+          img.dataset.fallbackSet = "true";
+          img.style.objectFit = "cover";
+          img.src = ""; // limpa source quebrada
+          img.alt = `[Arte ${num}]`;
+          img.style.background = "#2a2418";
+          // Criar elemento decorativo
+          const parent = img.parentNode;
+          if (parent && !parent.querySelector(".fallback-text")) {
+            const fallbackSpan = document.createElement("div");
+            fallbackSpan.className = "fallback-text";
+            fallbackSpan.innerText = `🎵 ${trackName}\nEncarte ${num}`;
+            fallbackSpan.style.position = "absolute";
+            fallbackSpan.style.color = "#e2c28b";
+            fallbackSpan.style.fontSize = "1.5rem";
+            fallbackSpan.style.textAlign = "center";
+            fallbackSpan.style.fontWeight = "bold";
+            fallbackSpan.style.textShadow = "0 2px 5px black";
+            fallbackSpan.style.zIndex = "2";
+            parent.style.position = "relative";
+            parent.appendChild(fallbackSpan);
+          }
+        }
+      };
+
+      slideDiv.appendChild(img);
+
+      // Criar área de controle de áudio personalizada
+      const audioControlDiv = document.createElement("div");
+      audioControlDiv.className = "audio-control";
+
+      const playPauseBtn = document.createElement("button");
+      playPauseBtn.className = "play-pause-btn";
+      playPauseBtn.innerHTML = "▶️";
+      playPauseBtn.setAttribute("aria-label", "Tocar música");
+
+      const trackSpan = document.createElement("span");
+      trackSpan.className = "track-name";
+      trackSpan.innerText = trackName;
+
+      audioControlDiv.appendChild(playPauseBtn);
+      audioControlDiv.appendChild(trackSpan);
+      slideDiv.appendChild(audioControlDiv);
+
+      // Criar objeto Audio
+      const audioObj = new Audio(audioSrc);
+      audioObj.preload = "metadata";
+      audioObj.loop = false; // cada faixa pode tocar até próxima, mas sem loop (opcional)
+      // Tratamento de erro: se não encontrar MP3, apenas desabilita botão com feedback visual
+      audioObj.onerror = () => {
+        console.warn(`Áudio não encontrado: ${audioSrc}`);
+        playPauseBtn.disabled = true;
+        playPauseBtn.style.opacity = "0.5";
+        playPauseBtn.title = "Áudio indisponível";
+        trackSpan.innerText += " (indisponível)";
+      };
+
+      // Evento para botão
+      playPauseBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        togglePlay(slideIndex, audioObj, playPauseBtn, trackSpan);
+      });
+
+      // Guardar referência para controle
+      audioElements.push({
+        index: slideIndex,
+        audio: audioObj,
+        btn: playPauseBtn,
+        trackSpan: trackSpan,
+        isPlaying: false
+      });
+
+      carousel.appendChild(slideDiv);
+    }
+
+    // Adicionar indicador de página dinâmico
+    addGlobalPageIndicator();
+
+    // após slides montados, configurar IntersectionObserver para pausar quando slide sai de foco
+    setupSlideVisibilityObserver();
+
+    // Evento de scroll para atualizar indicador de página
+    carousel.addEventListener("scroll", updatePageIndicator);
+    window.addEventListener("resize", () => { updatePageIndicator(); });
     updatePageIndicator();
-    attachScrollListener();
+
+    // Adicionar pequeno hint visual de swipe
+    addSwipeHint();
+  }
+
+  // Função de toggle play/pause com gerenciamento global: apenas um slide toca por vez
+  function togglePlay(slideIndex, audioObj, btnElement, trackSpan) {
+    const currentAudioData = audioElements.find(el => el.index === slideIndex);
+    if (!currentAudioData) return;
+
+    // Se há outro slide tocando, pausa imediatamente
+    if (currentPlayingIndex !== -1 && currentPlayingIndex !== slideIndex) {
+      const previousAudioData = audioElements.find(el => el.index === currentPlayingIndex);
+      if (previousAudioData && previousAudioData.isPlaying) {
+        previousAudioData.audio.pause();
+        previousAudioData.isPlaying = false;
+        if (previousAudioData.btn) previousAudioData.btn.innerHTML = "▶️";
+        // atualiza trackSpan sutilmente
+      }
+    }
+
+    // Agora lida com o slide atual
+    if (currentAudioData.isPlaying) {
+      // pausar
+      audioObj.pause();
+      currentAudioData.isPlaying = false;
+      btnElement.innerHTML = "▶️";
+      currentPlayingIndex = -1;
+    } else {
+      // tocar
+      // garantir que outro não esteja marcado como playing
+      if (currentPlayingIndex !== -1 && currentPlayingIndex !== slideIndex) {
+        const other = audioElements.find(el => el.index === currentPlayingIndex);
+        if (other) {
+          other.audio.pause();
+          other.isPlaying = false;
+          if (other.btn) other.btn.innerHTML = "▶️";
+        }
+      }
+      audioObj.play().catch(err => {
+        console.warn("Reprodução bloqueada ou erro:", err);
+        // Se erro por autoplay, ainda tenta mas ou usuário clicou; permitido por gesto
+      });
+      currentAudioData.isPlaying = true;
+      btnElement.innerHTML = "⏸️";
+      currentPlayingIndex = slideIndex;
+
+      // Quando a música terminar, resetar ícone
+      audioObj.onended = () => {
+        if (currentAudioData.isPlaying) {
+          currentAudioData.isPlaying = false;
+          if (btnElement) btnElement.innerHTML = "▶️";
+          if (currentPlayingIndex === slideIndex) currentPlayingIndex = -1;
+        }
+      };
+    }
+  }
+
+  // Pausar todas as músicas (útil quando sair da visibilidade total)
+  function pauseAllAudios() {
+    audioElements.forEach(elem => {
+      if (elem.isPlaying) {
+        elem.audio.pause();
+        elem.isPlaying = false;
+        if (elem.btn) elem.btn.innerHTML = "▶️";
+      }
+    });
+    currentPlayingIndex = -1;
+  }
+
+  // Observador de visibilidade dos slides: pausa o áudio do slide que está fora da tela
+  function setupSlideVisibilityObserver() {
+    const slides = document.querySelectorAll(".slide");
+    if (!slides.length) return;
+
+    const observerCallback = (entries) => {
+      entries.forEach(entry => {
+        const slideEl = entry.target;
+        const indexAttr = slideEl.getAttribute("data-slide-index");
+        if (indexAttr === null) return;
+        const idx = parseInt(indexAttr, 10);
+        if (!entry.isIntersecting) {
+          // Slide não está visível => se ele está reproduzindo, pausar
+          const audioData = audioElements.find(el => el.index === idx);
+          if (audioData && audioData.isPlaying) {
+            audioData.audio.pause();
+            audioData.isPlaying = false;
+            if (audioData.btn) audioData.btn.innerHTML = "▶️";
+            if (currentPlayingIndex === idx) currentPlayingIndex = -1;
+          }
+        }
+      });
+    };
+    const observer = new IntersectionObserver(observerCallback, {
+      threshold: 0.3  // quando menos de 30% visível, considera fora da tela
+    });
+    slides.forEach(slide => observer.observe(slide));
+  }
+
+  // Indicador de página tipo "encarte 5 / 15"
+  let indicatorDiv = null;
+  function addGlobalPageIndicator() {
+    indicatorDiv = document.createElement("div");
+    indicatorDiv.className = "page-indicator";
+    document.body.appendChild(indicatorDiv);
   }
 
   function updatePageIndicator() {
+    if (!carousel) return;
     const scrollLeft = carousel.scrollLeft;
     const slideWidth = carousel.clientWidth;
+    if (slideWidth === 0) return;
     const activeIndex = Math.round(scrollLeft / slideWidth);
-    const total = ENCARTES.length;
-    pageIndicator.innerText = `Encarte ${activeIndex+1} / ${total}`;
-    
-    if (activeIndex !== currentTrackIndex && activeIndex >= 0 && activeIndex < ENCARTES.length) {
-      currentTrackIndex = activeIndex;
-      const newTrack = ENCARTES[currentTrackIndex];
-      if (newTrack && audio.src !== newTrack.musicaUrl) {
-        const wasPlaying = !audio.paused;
-        audio.pause();
-        isPlaying = false;
-        updatePlayPauseButton();
-        audio.src = newTrack.musicaUrl;
-        audio.load();
-        currentTrackNameSpan.innerText = newTrack.musicaNome;
-        resetProgress();
-        if (wasPlaying) {
-          audio.play().catch(e => console.log("Autoplay bloqueado"));
-          isPlaying = true;
-          updatePlayPauseButton();
-        }
-      }
+    const currentPage = Math.min(Math.max(activeIndex, 0), TOTAL_SLIDES - 1) + 1;
+    if (indicatorDiv) {
+      indicatorDiv.innerText = `${currentPage} / ${TOTAL_SLIDES} · ${trackTitles[currentPage-1] || "Encarte"}`;
     }
   }
 
-  function attachScrollListener() {
-    carousel.addEventListener('scroll', () => updatePageIndicator());
-    window.addEventListener('resize', () => updatePageIndicator());
+  function addSwipeHint() {
+    const hint = document.createElement("div");
+    hint.className = "swipe-hint";
+    hint.innerHTML = "◀  deslize  ▶";
+    document.body.appendChild(hint);
+    setTimeout(() => {
+      hint.style.opacity = "0.6";
+      setTimeout(() => {
+        hint.style.transition = "opacity 1s";
+        hint.style.opacity = "0";
+        setTimeout(() => hint.remove(), 1200);
+      }, 3800);
+    }, 800);
   }
 
-  function goPrevSlide() {
-    const slideWidth = carousel.clientWidth;
-    carousel.scrollTo({ left: carousel.scrollLeft - slideWidth, behavior: 'smooth' });
+  // Prevenir comportamento padrão de arrastar imagens e garantir boa experiência tátil
+  function preventDragGestures() {
+    document.querySelectorAll('img').forEach(img => {
+      img.addEventListener('dragstart', (e) => e.preventDefault());
+    });
   }
 
-  function goNextSlide() {
-    const slideWidth = carousel.clientWidth;
-    carousel.scrollTo({ left: carousel.scrollLeft + slideWidth, behavior: 'smooth' });
-  }
+  // Adicional: se o usuário trocar de música e carregar nova faixa, não conflitar
+  // Garantir que ao scrollar, se o áudio de outro slide estiver tocando, fique pausado pelo observer
+  // também ao clicar no botão de play no slide atual, interrompe outros
 
-  function loadTrack(index) {
-    if (index < 0) index = 0;
-    if (index >= ENCARTES.length) index = ENCARTES.length - 1;
-    const track = ENCARTES[index];
-    if (!track) return;
-    currentTrackIndex = index;
-    const slideWidth = carousel.clientWidth;
-    carousel.scrollTo({ left: slideWidth * index, behavior: 'smooth' });
-    audio.pause();
-    isPlaying = false;
-    updatePlayPauseButton();
-    audio.src = track.musicaUrl;
-    audio.load();
-    currentTrackNameSpan.innerText = track.musicaNome;
-    resetProgress();
-  }
-
-  function resetProgress() {
-    progressFill.style.width = '0%';
-    currentTimeSpan.innerText = '0:00';
-    durationTimeSpan.innerText = '0:00';
-  }
-
-  function updatePlayPauseButton() {
-    playPauseBtn.innerHTML = isPlaying ? '⏸️' : '▶️';
-  }
-
-  function togglePlayPause() {
-    if (!audio.src || audio.src === "") {
-      loadTrack(currentTrackIndex);
-    }
-    if (isPlaying) {
-      audio.pause();
-      isPlaying = false;
-    } else {
-      audio.play().catch(e => console.log("Erro ao tocar"));
-      isPlaying = true;
-    }
-    updatePlayPauseButton();
-  }
-
-  function prevTrack() {
-    let newIndex = currentTrackIndex - 1;
-    if (newIndex < 0) newIndex = ENCARTES.length - 1;
-    loadTrack(newIndex);
-    if (isPlaying) {
-      audio.play().catch(e => console.log(e));
-    }
-  }
-
-  function nextTrack() {
-    let newIndex = currentTrackIndex + 1;
-    if (newIndex >= ENCARTES.length) newIndex = 0;
-    loadTrack(newIndex);
-    if (isPlaying) {
-      audio.play().catch(e => console.log(e));
-    }
-  }
-
-  function updateProgress() {
-    if (audio.duration && !isNaN(audio.duration)) {
-      const percent = (audio.currentTime / audio.duration) * 100;
-      progressFill.style.width = `${percent}%`;
-      currentTimeSpan.innerText = formatTime(audio.currentTime);
-      if (durationTimeSpan.innerText === '0:00') {
-        durationTimeSpan.innerText = formatTime(audio.duration);
-      }
-    }
-  }
-
-  function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  }
-
-  function setProgressFromClick(e) {
-    const rect = progressBar.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const percent = clickX / width;
-    if (audio.duration) {
-      audio.currentTime = percent * audio.duration;
-    }
-  }
-
-  function onAudioEnded() {
-    isPlaying = false;
-    updatePlayPauseButton();
-    nextTrack();
-  }
-
-  function onAudioLoadedMetadata() {
-    durationTimeSpan.innerText = formatTime(audio.duration);
-  }
-
-  // PWA Installation
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block';
-  });
-
-  installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        installBtn.style.display = 'none';
-      }
-      deferredPrompt = null;
-    }
-  });
-
-  // Inicialização
-  function init() {
-    buildEncartes();
-    prevEncarteBtn.addEventListener('click', goPrevSlide);
-    nextEncarteBtn.addEventListener('click', goNextSlide);
-    playPauseBtn.addEventListener('click', togglePlayPause);
-    prevTrackBtn.addEventListener('click', prevTrack);
-    nextTrackBtn.addEventListener('click', nextTrack);
-    progressBar.addEventListener('click', setProgressFromClick);
-    audio.addEventListener('timeupdate', updateProgress);
-    audio.addEventListener('ended', onAudioEnded);
-    audio.addEventListener('loadedmetadata', onAudioLoadedMetadata);
-    loadTrack(0);
-    setTimeout(() => updatePageIndicator(), 100);
-  }
-
-  init();
-</script>
-
-<script>
-  // Criar manifest.json dinamicamente
-  (function createManifest() {
-    const manifest = {
-      name: "Encarte Musical Player",
-      short_name: "EncarteMP",
-      description: "Player de música com encartes interativos",
-      start_url: ".",
-      display: "standalone",
-      theme_color: "#1a1a2e",
-      background_color: "#0b0b1a",
-      icons: [
-        {
-          src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%231a1a2e'/%3E%3Ctext x='50%25' y='50%25' font-size='200' fill='%23ffc107' text-anchor='middle' dy='.3em'%3E🎵%3C/text%3E%3C/svg%3E",
-          sizes: "512x512",
-          type: "image/svg+xml",
-          purpose: "any maskable"
-        }
-      ]
-    };
-    
-    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-    const manifestURL = URL.createObjectURL(manifestBlob);
-    const manifestLink = document.querySelector('link[rel="manifest"]');
-    if (manifestLink) {
-      manifestLink.href = manifestURL;
-    }
-  })();
-
-  // Service Worker para cache e PWA
-  (function registerSW() {
-    const swCode = `const CACHE_NAME = 'encarte-pwa-v1';
-const urlsToCache = ['./', 'index.html'];
-
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      if (response) return response;
-      return fetch(event.request).then(response => {
-        if (!response || response.status !== 200 || response.type !== 'basic') return response;
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-        return response;
-      });
-    })
-  );
-});`;
-
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    const swURL = URL.createObjectURL(swBlob);
-    
+  // Inicialização e também suporte para "Instalar PWA" com service worker
+  function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register(swURL).then(reg => {
-        console.log('Service Worker registrado com sucesso! PWA instalável.');
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('Service Worker registrado com sucesso:', reg);
       }).catch(err => {
-        console.warn('Erro ao registrar SW:', err);
+        console.warn('Falha ao registrar SW:', err);
       });
     }
-  })();
+  }
+
+  // carregar também verificação se áudio pode tocar com a pagina ativa, nenhum problema
+
+  // Evento resize: atualizar indicador e garantir que o scroll snap se ajusta
+  window.addEventListener("resize", () => {
+    updatePageIndicator();
+    // opcional: realinhar scroll
+    if (carousel) {
+      const currentIdx = currentPlayingIndex !== -1 ? currentPlayingIndex : 0;
+      const slideWidth = carousel.clientWidth;
+      if (slideWidth && document.querySelector(".slide")) {
+        // apenas se existir
+      }
+    }
+  });
+
+  // Configura botões e imagens contra arrastar
+  buildSlides();
+  preventDragGestures();
+
+  // suporte para quando o app retornar ao foco (manter estado do áudio: sem retomar automaticamente se não estiver visível)
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      // se a aba esconder, pausar todos
+      pauseAllAudios();
+    } else {
+      // ao retornar, não retomar automaticamente, evitar intrusão, mas podemos manter estado mudo
+      // não autoplay
+    }
+  });
+
+  // Registrar service worker após carregamento completo
+  window.addEventListener('load', () => {
+    registerServiceWorker();
+    // Pré-carregar metadados de áudio manter primeiro slide com pré-carga
+    if (audioElements.length) {
+      audioElements.forEach(el => {
+        if (el.audio) el.audio.load();
+      });
+    }
+    // corrigir border radius para indicador
+    updatePageIndicator();
+  });
 </script>
+
 </body>
 </html>
