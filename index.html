@@ -358,14 +358,20 @@
           e.stopPropagation();
           if (playing.slideIndex === i && playing.trackIndex === tIdx && playing.audio) {
             if (playing.audio.paused) {
-              playing.audio.play();
-              btn.textContent = "⏸";
-              btn.classList.add("playing");
-            } else {
-              playing.audio.pause();
-              btn.textContent = "▶";
-              btn.classList.remove("playing");
-            }
+  playing.audio.play();
+  btn.textContent = "⏸";
+  btn.classList.add("playing");
+  // Mostra o nome da música ao dar play
+  const trackName = playing.lbl?.textContent || s.labels[tIdx] || track;
+  nowPlayingDiv.innerHTML = `<span class="now-playing-icon">♫</span> <span class="now-playing-text">${trackName}</span>`;
+  nowPlayingDiv.classList.add("visible");
+} else {
+  playing.audio.pause();
+  btn.textContent = "▶";
+  btn.classList.remove("playing");
+  // Esconde ao pausar
+  nowPlayingDiv.classList.remove("visible");
+}
           } else {
             playTrack(i, tIdx, btn, lbl);
           }
