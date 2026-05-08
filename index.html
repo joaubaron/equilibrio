@@ -173,9 +173,12 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
     
-    .now-playing.visible {
+      .now-playing.visible {
       opacity: 1;
     }
+    .now-playing-icon { color: #ffcd7e; }
+    .now-playing-text { color: #ffcd7e; }
+    
   </style>
 </head>
 <body>
@@ -261,7 +264,7 @@
       const trackName = s.labels[trackIndex] || s.tracks[trackIndex];
       lbl.textContent = trackName;
       // Mostra no fixed footer — agora no canto inferior esquerdo
-      nowPlayingDiv.textContent = `🎶 ${trackName}`;
+      nowPlayingDiv.innerHTML = `<span class="now-playing-icon">🎶</span> <span class="now-playing-text">${trackName}</span>`;
       nowPlayingDiv.classList.add("visible");
     }
     
