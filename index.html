@@ -131,24 +131,23 @@
       font-family: system-ui, sans-serif;
     }
 
-    /* ── BARRA DE PROGRESSO ── */
-    .progress-bar-container {
-      position: absolute;
+    /* ── BARRA DE PROGRESSO GLOBAL FIXA ── */
+    .global-progress-bar {
+      position: fixed;
       bottom: 0;
       left: 0;
       width: 100%;
       height: 10px;
       background: rgba(255, 205, 126, 0.2);
       cursor: pointer;
-      z-index: 25;
+      z-index: 100;
     }
 
-    .progress-bar-fill {
+    .global-progress-fill {
       height: 100%;
       width: 0%;
       background: #ffcd7e;
-      pointer-events: none;
-      transition: width 0.25s linear;
+      transition: width 0.1s linear;
     }
   </style>
 </head>
@@ -157,8 +156,12 @@
 <div class="carousel" id="carousel"></div>
 <div class="page-indicator" id="pageIndicator">1 / 16</div>
 
+<!-- Apenas a barra de progresso global fixa -->
+<div class="global-progress-bar" id="globalProgressBar">
+  <div class="global-progress-fill" id="globalProgressFill"></div>
+</div>
+
 <script>
-  // side: "left" | "right" | null (sem botão)
   const SLIDES = [
     { img: "encarte1.webp",  tracks: [],                                                         labels: [],                                    sides: [] },
     { img: "encarte2.webp",  tracks: [],                                                         labels: [],                                    sides: [] },
@@ -190,6 +193,9 @@
     lbl: null
   };
 
+  const globalProgressFill = document.getElementById("globalProgressFill");
+  const globalProgressBar = document.getElementById("globalProgressBar");
+
   function stopAll() {
     if (playing.audio) {
       playing.audio.onended = null;
@@ -204,6 +210,7 @@
     playing.slideIndex = -1;
     playing.trackIndex = 0;
     playing.lbl = null;
+    globalProgressFill.style.width = "0%";
   }
 
   function playTrack(slideIndex, trackIndex, btn, lbl) {
@@ -219,18 +226,15 @@
     btn.textContent = "⏸";
     btn.classList.add("playing");
 
-    // ── BARRA DE PROGRESSO CORRIGIDA ──
-    const slide = btn.closest(".slide");
-    const fill = slide.querySelector(".progress-bar-fill");
-    if (fill) {
-      fill.style.width = "0%";
-      const updateProgress = () => {
-        if (audio.duration && !isNaN(audio.duration)) {
-          fill.style.width = (audio.currentTime / audio.duration * 100) + "%";
-        }
-      };
-      audio.addEventListener("timeupdate", updateProgress);
-    }
+    globalProgressFill.style.width = "0%";
+    
+    const updateProgress = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        globalProgressFill.style.width = (audio.currentTime / audio.duration * 100) + "%";
+      }
+    };
+    
+    audio.addEventListener("timeupdate", updateProgress);
 
     audio.play().catch(err => {
       console.warn("Não foi possível tocar:", err);
@@ -241,10 +245,26 @@
     audio.onended = () => {
       btn.textContent = "▶";
       btn.classList.remove("playing");
-      if (fill) fill.style.width = "0%";
+      globalProgressFill.style.width = "0%";
       playing = { slideIndex: -1, trackIndex: 0, audio: null, btn: null, lbl: null };
     };
   }
+
+  function seekAudio(e) {
+    if (!playing.audio || !playing.audio.duration) return;
+    
+    const rect = globalProgressBar.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    playing.audio.currentTime = ratio * playing.audio.duration;
+  }
+
+  globalProgressBar.addEventListener("mousedown", seekAudio);
+  globalProgressBar.addEventListener("touchstart", seekAudio, { passive: true });
+  globalProgressBar.addEventListener("mousemove", e => { 
+    if (e.buttons === 1 && playing.audio) seekAudio(e); 
+  });
+  globalProgressBar.addEventListener("touchmove", seekAudio, { passive: true });
 
   const carousel = document.getElementById("carousel");
 
@@ -306,29 +326,6 @@
         ctrl.appendChild(lbl);
         div.appendChild(ctrl);
       });
-
-      // ── BARRA DE PROGRESSO ──
-      const progressContainer = document.createElement("div");
-      progressContainer.className = "progress-bar-container";
-      const progressFill = document.createElement("div");
-      progressFill.className = "progress-bar-fill";
-      progressContainer.appendChild(progressFill);
-      div.appendChild(progressContainer);
-
-      // Clique e drag para seek
-      const seek = e => {
-        if (!playing.audio || playing.slideIndex !== i) return;
-        const rect = progressContainer.getBoundingClientRect();
-        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-        const ratio = Math.max(0, Math.min(1, x / rect.width));
-        if (playing.audio.duration) {
-          playing.audio.currentTime = ratio * playing.audio.duration;
-        }
-      };
-      progressContainer.addEventListener("mousedown", seek);
-      progressContainer.addEventListener("touchstart", seek, { passive: true });
-      progressContainer.addEventListener("mousemove", e => { if (e.buttons === 1) seek(e); });
-      progressContainer.addEventListener("touchmove", seek, { passive: true });
     }
 
     carousel.appendChild(div);
