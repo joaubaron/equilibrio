@@ -24,6 +24,7 @@ const STATIC_ASSETS = [
   BASE + '/encartes/encarte13.webp',
   BASE + '/encartes/encarte14.webp',
   BASE + '/encartes/encarte15.webp',
+  BASE + '/encartes/encarte16.webp',
 ];
 
 // Instalação: cacheia assets estáticos
