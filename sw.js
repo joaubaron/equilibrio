@@ -1,7 +1,7 @@
 const CACHE_VERSION = '07.05.2026-1602';
 const CACHE_STATIC  = `gente-static-${CACHE_VERSION}`;
 const CACHE_MP3     = `gente-mp3-${CACHE_VERSION}`;
-const BASE          = '/equilibriodistante';
+const BASE          = '/equilibrio';
 
 // Assets estáticos: cacheados na instalação
 const STATIC_ASSETS = [
