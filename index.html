@@ -165,37 +165,53 @@ cursor: pointer;
 .now-playing-icon { color: #ffcd7e; }
 .now-playing-text { color: #ffcd7e; }
 
-@keyframes spin-vinyl {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+/* CD VINIL ANIMADO - pequeno no canto inferior direito */
+.cd-vinyl {
+position: fixed;
+bottom: 20px;
+right: 20px;
+width: 48px;
+height: 48px;
+z-index: 200;
+cursor: pointer;
+border-radius: 50%;
+box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+transition: transform 0.2s ease, opacity 0.2s;
+opacity: 0;
+pointer-events: none;
 }
 
-.cd-spinner {
-  position: fixed;
-  bottom: 54px;
-  right: 14px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  z-index: 200;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s;
-  animation: spin-vinyl 3s linear infinite;
-  animation-play-state: paused;
+.cd-vinyl.visible {
+opacity: 0.9;
+pointer-events: auto;
 }
-.cd-spinner img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  display: block;
+
+.cd-vinyl:active {
+transform: scale(0.92);
 }
-.cd-spinner.visible {
-  opacity: 1;
-  pointer-events: none;
+
+.cd-vinyl-img {
+width: 100%;
+height: 100%;
+border-radius: 50%;
+object-fit: cover;
+background: #222;
+box-shadow: inset 0 0 0 2px rgba(255,205,126,0.5), 0 2px 8px rgba(0,0,0,0.3);
+will-change: transform;
 }
-.cd-spinner.spinning {
-  animation-play-state: running;
+
+/* Animação de giro suave como vinil */
+.rotate-slow {
+animation: spinVinyl 4s linear infinite;
+}
+
+@keyframes spinVinyl {
+from {
+transform: rotate(0deg);
+}
+to {
+transform: rotate(360deg);
+}
 }
 </style>
 </head>
@@ -207,7 +223,11 @@ cursor: pointer;
 <div class="global-progress-fill" id="globalProgressFill"></div>
 </div>
 <div class="now-playing" id="nowPlaying"></div>
-<div class="cd-spinner" id="cdSpinner"><img src="cd.png" alt=""></div>
+
+<!-- Elemento do CD giratório (vinil) -->
+<div class="cd-vinyl" id="cdVinyl">
+<img class="cd-vinyl-img" id="cdVinylImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23111111' stroke='%23ffcd7e' stroke-width='1.5' /%3E%3Ccircle cx='50' cy='50' r='35' fill='%23222222' /%3E%3Ccircle cx='50' cy='50' r='20' fill='%23333333' /%3E%3Ccircle cx='50' cy='50' r='8' fill='%23ffcd7e' /%3E%3Ccircle cx='50' cy='50' r='4' fill='%23000' /%3E%3Cpath d='M50 15 L52 30 L48 30 Z' fill='%23ffcd7e' opacity='0.7' /%3E%3C/svg%3E" alt="CD Vinil">
+</div>
 
 <script>
 const SLIDES = [
@@ -236,8 +256,72 @@ let playing = { slideIndex: -1, trackIndex: 0, audio: null, btn: null, lbl: null
 const globalProgressFill = document.getElementById("globalProgressFill");
 const globalProgressBar = document.getElementById("globalProgressBar");
 const nowPlayingDiv = document.getElementById("nowPlaying");
-const cdSpinner = document.getElementById("cdSpinner");
 const carousel = document.getElementById("carousel");
+const cdVinyl = document.getElementById("cdVinyl");
+const cdVinylImg = document.getElementById("cdVinylImg");
+
+// --- Controle do CD (vinil giratório) ---
+function startVinylSpin() {
+if (!cdVinylImg.classList.contains('rotate-slow')) {
+cdVinylImg.classList.add('rotate-slow');
+}
+cdVinyl.classList.add('visible');
+}
+
+function stopVinylSpin() {
+cdVinylImg.classList.remove('rotate-slow');
+cdVinyl.classList.remove('visible');
+}
+
+// Se o global for pausado, paramos o giro; se tocar, giramos
+function updateVinylBasedOnPlayback() {
+if (playing.audio && !playing.audio.paused) {
+startVinylSpin();
+} else {
+stopVinylSpin();
+}
+}
+
+// Ao clicar no CD: pausa ou resgata a reprodução atual (funciona como um botão global)
+cdVinyl.addEventListener("click", (e) => {
+e.stopPropagation();
+if (playing.audio) {
+if (playing.audio.paused) {
+// Resumir a reprodução
+playing.audio.play().catch(err => console.log("play fail", err));
+// Atualizar botão correspondente
+if (playing.btn) {
+playing.btn.textContent = "⏸";
+playing.btn.classList.add("playing");
+}
+const trackName = playing.lbl?.textContent || (SLIDES[playing.slideIndex]?.labels[playing.trackIndex] || "Música");
+nowPlayingDiv.innerHTML = `<span class="now-playing-icon">♫</span> <span class="now-playing-text">${trackName}</span>`;
+nowPlayingDiv.classList.add("visible");
+startVinylSpin();
+} else {
+// Pausar
+playing.audio.pause();
+if (playing.btn) {
+playing.btn.textContent = "▶";
+playing.btn.classList.remove("playing");
+}
+nowPlayingDiv.classList.remove("visible");
+stopVinylSpin();
+}
+} else {
+// Se não há música tocando, tentar reproduzir a primeira faixa disponível do slide atual (se houver)
+const currentSlideIdx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+const slideData = SLIDES[currentSlideIdx];
+if (slideData.tracks.length) {
+const slideDiv = carousel.children[currentSlideIdx];
+const firstBtn = slideDiv.querySelector('.play-pause-btn');
+const firstLbl = slideDiv.querySelector('.track-name');
+if (firstBtn) {
+playTrack(currentSlideIdx, 0, firstBtn, firstLbl);
+}
+}
+}
+});
 
 // --- WakeLock ---
 let wakeLock = null;
@@ -301,20 +385,21 @@ playing.lbl = null;
 nowPlayingDiv.classList.remove("visible");
 nowPlayingDiv.textContent = "";
 globalProgressFill.style.width = "0%";
-cdSpinner.classList.remove("visible", "spinning");
 releaseWakeLock();
+// Para o giro do vinil
+stopVinylSpin();
 }
 
 function playTrack(slideIndex, trackIndex, btn, lbl) {
 const s = SLIDES[slideIndex];
 if (!s.tracks.length || trackIndex >= s.tracks.length) return;
-stopAll();
+stopAll(); // isso já para o vinil via stopVinylSpin dentro de stopAll
 
 const audio = new Audio(MP3_BASE + s.tracks[trackIndex]);
 playing = { slideIndex, trackIndex, audio, btn, lbl };
 
 const trackName = s.labels[trackIndex] || s.tracks[trackIndex];
-lbl.textContent = trackName;
+if (lbl) lbl.textContent = trackName;
 nowPlayingDiv.innerHTML = `<span class="now-playing-icon">♫</span> <span class="now-playing-text">${trackName}</span>`;
 nowPlayingDiv.classList.add("visible");
 
@@ -323,7 +408,8 @@ btn.classList.add("playing");
 globalProgressFill.style.width = "0%";
 
 acquireWakeLock();
-cdSpinner.classList.add("visible", "spinning");
+// Inicia rotação do CD pois a música vai tocar
+startVinylSpin();
 
 // --- MediaSession ---
 if ('mediaSession' in navigator) {
@@ -331,18 +417,26 @@ navigator.mediaSession.metadata = new MediaMetadata({
 title: trackName, artist: 'Renato Russo', album: 'Equilíbrio Distante'
 });
 navigator.mediaSession.setActionHandler('play', () => {
+if (playing.audio) {
 playing.audio.play();
+if(playing.btn) {
 playing.btn.textContent = '⏸';
 playing.btn.classList.add('playing');
+}
 nowPlayingDiv.classList.add('visible');
-cdSpinner.classList.add('spinning');
+startVinylSpin();
+}
 });
 navigator.mediaSession.setActionHandler('pause', () => {
+if (playing.audio) {
 playing.audio.pause();
+if(playing.btn) {
 playing.btn.textContent = '▶';
 playing.btn.classList.remove('playing');
+}
 nowPlayingDiv.classList.remove('visible');
-cdSpinner.classList.remove('spinning');
+stopVinylSpin();
+}
 });
 navigator.mediaSession.setActionHandler('nexttrack', playNext);
 }
@@ -357,8 +451,13 @@ audio.play().catch(err => {
 btn.textContent = "▶";
 btn.classList.remove("playing");
 nowPlayingDiv.classList.remove("visible");
+stopVinylSpin(); // se falhar, não gira
 });
-audio.onended = playNext;
+audio.onended = () => {
+// Quando terminar a música, o vinil para momentaneamente até a next tocar
+stopVinylSpin();
+playNext();
+};
 }
 
 function seekAudio(e) {
@@ -413,13 +512,13 @@ if (playing.slideIndex === i && playing.trackIndex === tIdx && playing.audio) {
     const trackName = playing.lbl?.textContent || s.labels[tIdx] || track;
     nowPlayingDiv.innerHTML = `<span class="now-playing-icon">♫</span> <span class="now-playing-text">${trackName}</span>`;
     nowPlayingDiv.classList.add("visible");
-    cdSpinner.classList.add("spinning");
+    startVinylSpin(); // retoma giro
   } else {
     playing.audio.pause();
     btn.textContent = "▶";
     btn.classList.remove("playing");
     nowPlayingDiv.classList.remove("visible");
-    cdSpinner.classList.remove("spinning");
+    stopVinylSpin(); // pausa giro
   }
 } else {
   playTrack(i, tIdx, btn, lbl);
@@ -456,6 +555,17 @@ navigator.serviceWorker.register("/equilibrio/sw.js")
 .catch(e => console.warn("SW falhou:", e));
 });
 }
+
+// Ajustar estado do CD após qualquer interação externa (garantia)
+document.addEventListener('visibilitychange', () => {
+if (!document.hidden && playing.audio && !playing.audio.paused) {
+startVinylSpin();
+} else if (document.hidden && playing.audio && !playing.audio.paused) {
+// Ao esconder não afetamos, manter giro (opcional)
+} else if (playing.audio && playing.audio.paused) {
+stopVinylSpin();
+}
+});
 </script>
 </body>
 </html>
