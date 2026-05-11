@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   BASE + '/manifest.json',
   BASE + '/icon-192.png',
   BASE + '/icon-512.png',
+  BASE + '/cd.png',  
   BASE + '/encartes/encarte1.webp',
   BASE + '/encartes/encarte2.webp',
   BASE + '/encartes/encarte3.webp',
