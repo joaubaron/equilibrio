@@ -220,26 +220,53 @@ if (wakeLock) { wakeLock.release(); wakeLock = null; }
 // --- Reprodução contínua ---
 function playNext() {
     const nextTrack = playing.trackIndex + 1;
+    
+    // Se tem próxima música no mesmo slide
     if (nextTrack < SLIDES[playing.slideIndex].tracks.length) {
-        // Mesmo slide, próxima faixa
         const slide = carousel.children[playing.slideIndex];
         const btn = slide.querySelectorAll('.play-pause-btn')[nextTrack];
         const lbl = slide.querySelectorAll('.track-name')[nextTrack];
         playTrack(playing.slideIndex, nextTrack, btn, lbl);
-    } else {
-        // Procura próximo slide com música
-        for (let i = playing.slideIndex + 1; i < TOTAL; i++) {
-            if (SLIDES[i].tracks.length) {
-                // Rola para o slide ANTES de tocar
-                scrollToSlide(i);
-                // Pequeno delay para garantir que o scroll terminou
-                setTimeout(() => {
-                    const slide = carousel.children[i];
-                    playTrack(i, 0, slide.querySelector('.play-pause-btn'), slide.querySelector('.track-name'));
-                }, 150);
-                return;
+        return;
+    }
+    
+    // Procura o PRÓXIMO slide que tem música (pode ser à frente OU atrás)
+    let nextSlideIndex = -1;
+    
+    // Primeiro tenta encontrar após o slide atual
+    for (let i = playing.slideIndex + 1; i < TOTAL; i++) {
+        if (SLIDES[i].tracks.length > 0) {
+            nextSlideIndex = i;
+            break;
+        }
+    }
+    
+    // Se não achou depois, procura desde o início (volta para trás)
+    if (nextSlideIndex === -1) {
+        for (let i = 0; i < playing.slideIndex; i++) {
+            if (SLIDES[i].tracks.length > 0) {
+                nextSlideIndex = i;
+                break;
             }
         }
+    }
+    
+    if (nextSlideIndex !== -1) {
+        // Rola para o slide (pode ser esquerda ou direita)
+        scrollToSlide(nextSlideIndex);
+        
+        // Espera o scroll terminar e toca
+        setTimeout(() => {
+            const slide = carousel.children[nextSlideIndex];
+            if (slide && SLIDES[nextSlideIndex].tracks.length > 0) {
+                const btn = slide.querySelector('.play-pause-btn');
+                const lbl = slide.querySelector('.track-name');
+                if (btn) {
+                    playTrack(nextSlideIndex, 0, btn, lbl);
+                }
+            }
+        }, 200);
+    } else {
         stopAll();
     }
 }
