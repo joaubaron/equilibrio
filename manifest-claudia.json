@@ -6,6 +6,7 @@
   "scope": "/equilibrio/",
   "display_override": ["fullscreen", "standalone"],
   "display": "standalone",
+  "orientation": "landscape",
   "theme_color": "#fefbea",
   "background_color": "#fefbea",
   "icons": [
