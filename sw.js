@@ -6,9 +6,9 @@ const BASE = self.location.pathname.replace('/sw.js', '');
 // Assets estáticos críticos (lista COMPLETA)
 const STATIC_ASSETS = [
   `${BASE}/index.html`,
-  `${BASE}/claudia.html`,
+  `${BASE}/debora.html`,
   `${BASE}/manifest.json`,
-  `${BASE}/manifest-claudia.json`,
+  `${BASE}/manifest-debora.json`,
   `${BASE}/silence.mp3`,
   `${BASE}/encartes/encarte1.webp`,
   `${BASE}/encartes/encarte2.webp`,
@@ -25,7 +25,7 @@ const STATIC_ASSETS = [
   `${BASE}/encartes/encarte13.webp`,
   `${BASE}/encartes/encarte14.webp`,
   `${BASE}/encartes/encarte15.webp`,
-  `${BASE}/encartes/claudia.webp`,
+  `${BASE}/encartes/debora.webp`,
 ];
 
 // Lista de MP3s (lista COMPLETA)
