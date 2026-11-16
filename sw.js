@@ -6,7 +6,6 @@ const BASE = self.location.pathname.replace('/sw.js', '');
 // Assets estáticos críticos (lista COMPLETA)
 const STATIC_ASSETS = [
   `${BASE}/index.html`,
-  `${BASE}/debora.html`,
   `${BASE}/manifest.json`,
   `${BASE}/manifest-debora.json`,
   `${BASE}/silence.mp3`,
